@@ -39,9 +39,25 @@ export function SettleForm({
     setLoading(true);
     try {
       const supabase = createClient();
-      await supabase.from("settlements").insert({
+
+      // Verify the current user is the one making the payment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== fromUser) {
+        toast({
+          title: "Unauthorized",
+          description: "You can only record settlements where you are the payer",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.from("settlements").insert({
         group_id: groupId, from_user: fromUser, to_user: toUser, amount, currency,
       });
+
+      if (error) throw error;
+
       setSettled(true);
       router.refresh();
     } catch (err) {

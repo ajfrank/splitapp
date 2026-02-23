@@ -30,14 +30,18 @@ export default function BalancesPage({ params }: Props) {
     initialized.current = true;
 
     (async () => {
-      const { data: groupData, error: gErr } = await supabase
-        .from("groups").select("*").eq("id", groupId).single();
-      const { data: members, error: mErr } = await supabase
-        .from("group_members").select("*, user:users(*)").eq("group_id", groupId);
-      const { data: expenses, error: eErr } = await supabase
-        .from("expenses").select("*, splits:expense_splits(*)").eq("group_id", groupId);
-      const { data: settlements, error: sErr } = await supabase
-        .from("settlements").select("*").eq("group_id", groupId);
+      // Parallelize all database queries for better performance
+      const [groupResult, membersResult, expensesResult, settlementsResult] = await Promise.all([
+        supabase.from("groups").select("*").eq("id", groupId).single(),
+        supabase.from("group_members").select("*, user:users(*)").eq("group_id", groupId),
+        supabase.from("expenses").select("*, splits:expense_splits(*)").eq("group_id", groupId),
+        supabase.from("settlements").select("*").eq("group_id", groupId),
+      ]);
+
+      const { data: groupData, error: gErr } = groupResult;
+      const { data: members, error: mErr } = membersResult;
+      const { data: expenses, error: eErr } = expensesResult;
+      const { data: settlements, error: sErr } = settlementsResult;
 
       if (gErr) toast({ title: "Error", description: gErr.message, variant: "destructive" });
       if (mErr) toast({ title: "Error", description: mErr.message, variant: "destructive" });

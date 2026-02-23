@@ -14,9 +14,10 @@ describe("calculateSplits", () => {
     it("handles remainder by giving extra to the first person", () => {
       const result = calculateSplits(100, "equal", ["a", "b", "c"]);
       // 100 / 3 = 33.33 per person, remainder 0.01 to first
-      expect(result[0].amount).toBeCloseTo(33.34, 2);
-      expect(result[1].amount).toBeCloseTo(33.33, 2);
-      expect(result[2].amount).toBeCloseTo(33.33, 2);
+      expect(result).toHaveLength(3);
+      expect(result[0]?.amount).toBeCloseTo(33.34, 2);
+      expect(result[1]?.amount).toBeCloseTo(33.33, 2);
+      expect(result[2]?.amount).toBeCloseTo(33.33, 2);
       // Sum should equal total
       const total = result.reduce((sum, r) => sum + r.amount, 0);
       expect(total).toBeCloseTo(100, 2);
@@ -52,9 +53,10 @@ describe("calculateSplits", () => {
         { userId: "b", value: 33.33 },
         { userId: "c", value: 33.34 },
       ]);
-      expect(result[0].amount).toBeCloseTo(33.33, 2);
-      expect(result[1].amount).toBeCloseTo(33.33, 2);
-      expect(result[2].amount).toBeCloseTo(33.34, 2);
+      expect(result).toHaveLength(3);
+      expect(result[0]?.amount).toBeCloseTo(33.33, 2);
+      expect(result[1]?.amount).toBeCloseTo(33.33, 2);
+      expect(result[2]?.amount).toBeCloseTo(33.34, 2);
     });
 
     it("returns empty when no inputs provided", () => {

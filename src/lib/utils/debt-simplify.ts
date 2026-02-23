@@ -30,22 +30,26 @@ export function simplifyDebts(
   let j = 0;
 
   while (i < debtors.length && j < creditors.length) {
-    const amount = Math.min(debtors[i].amount, creditors[j].amount);
+    const debtor = debtors[i];
+    const creditor = creditors[j];
+    if (!debtor || !creditor) break;
+
+    const amount = Math.min(debtor.amount, creditor.amount);
     const rounded = Math.round(amount * 100) / 100;
 
     if (rounded > 0) {
       result.push({
-        from: debtors[i].id,
-        to: creditors[j].id,
+        from: debtor.id,
+        to: creditor.id,
         amount: rounded,
       });
     }
 
-    debtors[i].amount -= amount;
-    creditors[j].amount -= amount;
+    debtor.amount -= amount;
+    creditor.amount -= amount;
 
-    if (Math.round(debtors[i].amount * 100) === 0) i++;
-    if (Math.round(creditors[j].amount * 100) === 0) j++;
+    if (Math.round(debtor.amount * 100) === 0) i++;
+    if (Math.round(creditor.amount * 100) === 0) j++;
   }
 
   return result;

@@ -47,6 +47,14 @@ function splitByPercentage(
   total: number,
   inputs: SplitInput[]
 ): SplitResult[] {
+  // Validate that percentages sum to 100%
+  const totalPercentage = inputs.reduce((sum, { value }) => sum + value, 0);
+  if (Math.abs(totalPercentage - 100) > 0.01) {
+    console.warn(
+      `Percentage split totals ${totalPercentage}%, expected 100%`
+    );
+  }
+
   return inputs.map(({ userId, value }) => ({
     userId,
     amount: Math.round(total * (value / 100) * 100) / 100,

@@ -11,8 +11,22 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: User },
 ];
 
+// Check if we're inside a specific group (e.g., /groups/abc-123 or /groups/abc-123/expenses)
+function getGroupIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/groups\/([^/]+)/);
+  const groupId = match?.[1];
+  if (groupId && groupId !== "new") {
+    return groupId;
+  }
+  return null;
+}
+
 export function BottomNav() {
   const pathname = usePathname();
+  const groupId = getGroupIdFromPath(pathname);
+
+  // If inside a group, plus button creates expense; otherwise creates group
+  const plusHref = groupId ? `/groups/${groupId}/expenses/new` : "/groups/new";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-4 pb-safe">
@@ -25,7 +39,7 @@ export function BottomNav() {
             return (
               <Link
                 key={item.label}
-                href="/groups/new"
+                href={plusHref}
                 className="flex flex-col items-center gap-0.5 -mt-4"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
