@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton, GroupCardSkeleton } from "@/components/ui/skeleton";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { getCurrencySymbol } from "@/lib/utils/format";
 import { toast } from "@/hooks/use-toast";
 import type { Group } from "@/lib/types";
@@ -59,9 +62,20 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-      </div>
+      <>
+        <Header
+          title="My Groups"
+          action={
+            <Button variant="ghost" size="sm" disabled>
+              <LogOut className="h-4 w-4 mr-1" /> Sign out
+            </Button>
+          }
+        />
+        <div className="space-y-4 p-4">
+          <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
+          <ListSkeleton count={3} ItemComponent={GroupCardSkeleton} />
+        </div>
+      </>
     );
   }
 
@@ -80,46 +94,54 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500">Hi, {userName}</p>
 
         {groups.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-              <Users className="h-8 w-8 text-gray-400" />
-            </div>
-            <h2 className="text-lg font-semibold">No groups yet</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Create a group to start splitting expenses
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {groups.map((group) => (
-              <Link key={group.id} href={`/groups/${group.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 font-semibold">
-                        {group.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium">{group.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {getCurrencySymbol(group.currency)} &middot; {group.description || "No description"}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </CardContent>
-                </Card>
+          <EmptyState
+            icon={Users}
+            title="No groups yet"
+            description="Create a group to start splitting expenses with friends"
+            action={
+              <Link href="/groups/new">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Group
+                </Button>
               </Link>
-            ))}
-          </div>
-        )}
+            }
+          />
+        ) : (
+          <>
+            <AnimatedList className="space-y-3">
+              {groups.map((group) => (
+                <AnimatedListItem key={group.id}>
+                  <Link href={`/groups/${group.id}`}>
+                    <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 font-semibold">
+                            {group.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium">{group.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {getCurrencySymbol(group.currency)} &middot; {group.description || "No description"}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </AnimatedListItem>
+              ))}
+            </AnimatedList>
 
-        <Link href="/groups/new" className="block">
-          <Button className="w-full gap-2">
-            <Plus className="h-4 w-4" />
-            Create Group
-          </Button>
-        </Link>
+            <Link href="/groups/new" className="block">
+              <Button className="w-full gap-2">
+                <Plus className="h-4 w-4" />
+                Create Group
+              </Button>
+            </Link>
+          </>
+        )}
       </div>
     </>
   );

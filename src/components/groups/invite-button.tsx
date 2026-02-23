@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,8 +26,30 @@ export function InviteButton({ inviteCode }: { inviteCode: string }) {
   }
 
   return (
-    <Button variant="outline" size="icon" onClick={handleCopy}>
-      {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Share2 className="h-4 w-4" />}
+    <Button variant="outline" size="icon" onClick={handleCopy} className="relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        {copied ? (
+          <motion.div
+            key="check"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Check className="h-4 w-4 text-emerald-600" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="share"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Share2 className="h-4 w-4" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Button>
   );
 }

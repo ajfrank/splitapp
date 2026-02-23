@@ -3,13 +3,16 @@
 import { useEffect, useState, useRef } from "react";
 import { use } from "react";
 import Link from "next/link";
-import { Plus, BarChart3 } from "lucide-react";
+import { Plus, BarChart3, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { ExpenseCard } from "@/components/expenses/expense-card";
 import { InviteButton } from "@/components/groups/invite-button";
 import { MembersList } from "@/components/groups/members-list";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListSkeleton, ExpenseCardSkeleton, Skeleton } from "@/components/ui/skeleton";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { toast } from "@/hooks/use-toast";
 import type { Group, Expense, GroupMember } from "@/lib/types";
 
@@ -68,9 +71,26 @@ export default function GroupPage({ params }: Props) {
   }, [supabase, groupId]);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-    </div>;
+    return (
+      <>
+        <Header title="" showBack />
+        <div className="space-y-4 p-4">
+          <div className="flex gap-2">
+            <Skeleton className="flex-1 h-10" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+          <div className="flex -space-x-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-8 rounded-full border-2 border-white" />
+            ))}
+          </div>
+          <div>
+            <Skeleton className="h-5 w-24 mb-3" />
+            <ListSkeleton count={4} ItemComponent={ExpenseCardSkeleton} />
+          </div>
+        </div>
+      </>
+    );
   }
 
   if (!group) return <div className="p-4 text-center">Group not found</div>;
@@ -102,13 +122,28 @@ export default function GroupPage({ params }: Props) {
             </Link>
           </div>
           {expenses.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 py-8">No expenses yet. Add one to get started.</p>
+            <EmptyState
+              icon={Receipt}
+              title="No expenses yet"
+              description="Add your first expense to start tracking"
+              action={
+                <Link href={`/groups/${groupId}/expenses/new`}>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Expense
+                  </Button>
+                </Link>
+              }
+              className="py-8"
+            />
           ) : (
-            <div className="space-y-2">
+            <AnimatedList className="space-y-2">
               {expenses.map((expense) => (
-                <ExpenseCard key={expense.id} expense={expense} currency={group.currency} />
+                <AnimatedListItem key={expense.id}>
+                  <ExpenseCard expense={expense} currency={group.currency} />
+                </AnimatedListItem>
               ))}
-            </div>
+            </AnimatedList>
           )}
         </div>
       </div>

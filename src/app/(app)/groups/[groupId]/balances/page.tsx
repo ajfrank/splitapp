@@ -5,6 +5,7 @@ import { use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { BalanceSummary } from "@/components/balances/balance-summary";
+import { BalanceSkeleton } from "@/components/ui/skeleton";
 import { simplifyDebts } from "@/lib/utils/debt-simplify";
 import { calculateBalances } from "@/lib/utils/balances";
 import { toast } from "@/hooks/use-toast";
@@ -60,9 +61,15 @@ export default function BalancesPage({ params }: Props) {
   }, [supabase, groupId]);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-    </div>;
+    return (
+      <>
+        <Header title="Balances" showBack />
+        <div className="p-4 space-y-4">
+          <BalanceSkeleton />
+          <BalanceSkeleton />
+        </div>
+      </>
+    );
   }
   if (!group) return <div className="p-4 text-center">Group not found</div>;
 

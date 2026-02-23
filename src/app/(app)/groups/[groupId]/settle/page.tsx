@@ -2,9 +2,13 @@
 
 import { useEffect, useState, useRef } from "react";
 import { use } from "react";
+import { PartyPopper } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { SettleForm } from "@/components/balances/settle-form";
+import { EmptyState } from "@/components/ui/empty-state";
+import { BalanceSkeleton } from "@/components/ui/skeleton";
+import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { simplifyDebts } from "@/lib/utils/debt-simplify";
 import { calculateBalances } from "@/lib/utils/balances";
 import { formatCurrency } from "@/lib/utils/format";
@@ -61,9 +65,15 @@ export default function SettlePage({ params }: Props) {
   }, [supabase, groupId]);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
-    </div>;
+    return (
+      <>
+        <Header title="Settle Up" showBack />
+        <div className="space-y-4 p-4">
+          <BalanceSkeleton />
+          <BalanceSkeleton />
+        </div>
+      </>
+    );
   }
   if (!group) return <div className="p-4 text-center">Group not found</div>;
 
@@ -72,31 +82,43 @@ export default function SettlePage({ params }: Props) {
       <Header title="Settle Up" showBack />
       <div className="space-y-4 p-4">
         {debts.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">All settled up!</p>
+          <EmptyState
+            icon={PartyPopper}
+            title="All settled up!"
+            description="Everyone is square. Great job keeping track of expenses!"
+            celebrate
+            className="py-8"
+          />
         ) : (
-          debts.map((debt, i) => (
-            <SettleForm
-              key={i} groupId={groupId}
-              fromUser={debt.from} toUser={debt.to} amount={debt.amount}
-              fromName={userMap[debt.from]?.full_name ?? "Unknown"}
-              toName={userMap[debt.to]?.full_name ?? "Unknown"}
-              toVenmo={userMap[debt.to]?.venmo_username ?? null}
-              currency={group.currency}
-            />
-          ))
+          <AnimatedList className="space-y-3">
+            {debts.map((debt, i) => (
+              <AnimatedListItem key={i}>
+                <SettleForm
+                  groupId={groupId}
+                  fromUser={debt.from} toUser={debt.to} amount={debt.amount}
+                  fromName={userMap[debt.from]?.full_name ?? "Unknown"}
+                  toName={userMap[debt.to]?.full_name ?? "Unknown"}
+                  toVenmo={userMap[debt.to]?.venmo_username ?? null}
+                  currency={group.currency}
+                />
+              </AnimatedListItem>
+            ))}
+          </AnimatedList>
         )}
         {settlements.length > 0 && (
           <Card>
             <CardHeader><CardTitle className="text-sm">Settlement History</CardTitle></CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <AnimatedList className="space-y-2">
                 {settlements.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between text-sm">
-                    <span>{s.from_user_data?.full_name} paid {s.to_user_data?.full_name}</span>
-                    <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
-                  </div>
+                  <AnimatedListItem key={s.id}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{s.from_user_data?.full_name} paid {s.to_user_data?.full_name}</span>
+                      <span className="font-medium">{formatCurrency(s.amount, group.currency)}</span>
+                    </div>
+                  </AnimatedListItem>
                 ))}
-              </div>
+              </AnimatedList>
             </CardContent>
           </Card>
         )}

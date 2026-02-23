@@ -5,6 +5,10 @@
   --color-foreground: #111827;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Animation keyframes */
+  --animate-in: enter 0.2s ease-out;
+  --animate-out: exit 0.2s ease-in forwards;
 }
 
 body {
@@ -12,4 +16,52 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Toast animation keyframes */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: var(--tw-enter-translate-x, 0) var(--tw-enter-translate-y, 0) scale(var(--tw-enter-scale, 1));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+}
+
+@keyframes exit {
+  from {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: var(--tw-exit-translate-x, 0) var(--tw-exit-translate-y, 0) scale(var(--tw-exit-scale, 1));
+  }
+}
+
+/* Animate in/out utilities for Radix Toast */
+.animate-in {
+  animation: enter 0.2s ease-out;
+}
+
+.animate-out {
+  animation: exit 0.15s ease-in forwards;
+}
+
+.fade-out-80 {
+  --tw-exit-opacity: 0.8;
+}
+
+.slide-in-from-top-full {
+  --tw-enter-translate-y: -100%;
+}
+
+.slide-in-from-right-full {
+  --tw-enter-translate-x: 100%;
+}
+
+.slide-out-to-right-full {
+  --tw-exit-translate-x: 100%;
 }
