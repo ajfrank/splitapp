@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyPicker } from "@/components/ui/currency-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,6 +15,7 @@ export default function NewGroupPage() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [currency, setCurrency] = useState("USD");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,7 +24,6 @@ export default function NewGroupPage() {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
-    const currency = (formData.get("currency") as string) || "USD";
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push("/login"); return; }
@@ -62,18 +63,8 @@ export default function NewGroupPage() {
           <Input id="description" name="description" placeholder="What's this group for?" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="currency">Currency</Label>
-          <select
-            id="currency" name="currency" defaultValue="USD"
-            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="JPY">JPY</option>
-            <option value="CAD">CAD</option>
-            <option value="AUD">AUD</option>
-          </select>
+          <Label>Currency</Label>
+          <CurrencyPicker value={currency} onChange={setCurrency} />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : "Create Group"}

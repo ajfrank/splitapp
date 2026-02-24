@@ -1,29 +1,19 @@
-const currencySymbols: Record<string, string> = {
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  JPY: "¥",
-  CAD: "C$",
-  AUD: "A$",
-};
+import { getCurrencySymbol as getSymbol, ALL_CURRENCIES } from "./currencies";
 
 export function formatCurrency(amount: number, currency: string = "USD"): string {
-  const symbol = currencySymbols[currency] ?? currency + " ";
+  const symbol = getSymbol(currency);
   return `${symbol}${Math.abs(amount).toFixed(2)}`;
 }
 
 export function getCurrencySymbol(currency: string): string {
-  return currencySymbols[currency] ?? currency;
+  return getSymbol(currency);
 }
 
-export const CURRENCIES = [
-  { value: "USD", label: "USD ($)" },
-  { value: "EUR", label: "EUR (€)" },
-  { value: "GBP", label: "GBP (£)" },
-  { value: "JPY", label: "JPY (¥)" },
-  { value: "CAD", label: "CAD (C$)" },
-  { value: "AUD", label: "AUD (A$)" },
-];
+// Legacy export for backward compatibility
+export const CURRENCIES = ALL_CURRENCIES.slice(0, 6).map((c) => ({
+  value: c.code,
+  label: `${c.code} (${c.symbol})`,
+}));
 
 export const CATEGORIES = [
   { value: "food", label: "Food & Drink", icon: "🍔" },

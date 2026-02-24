@@ -23,7 +23,7 @@ describe("formatCurrency", () => {
   });
 
   it("falls back to currency code for unknown currencies", () => {
-    expect(formatCurrency(10, "BRL")).toBe("BRL 10.00");
+    expect(formatCurrency(10, "XXX")).toBe("XXX10.00");
   });
 
   it("handles large amounts", () => {
@@ -49,7 +49,7 @@ describe("getCurrencySymbol", () => {
   });
 
   it("returns currency code for unknown currency", () => {
-    expect(getCurrencySymbol("BRL")).toBe("BRL");
+    expect(getCurrencySymbol("XXX")).toBe("XXX");
   });
 });
 

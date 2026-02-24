@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { use } from "react";
 import Link from "next/link";
-import { Plus, BarChart3, Receipt } from "lucide-react";
+import { Plus, BarChart3, Receipt, PieChart } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -147,6 +147,9 @@ export default function GroupPage({ params }: Props) {
               isAdmin={isAdmin}
               onUpdate={refresh}
             />
+            <Link href={`/groups/${groupId}/analytics`}>
+              <Button variant="ghost" size="icon"><PieChart className="h-5 w-5" /></Button>
+            </Link>
             <Link href={`/groups/${groupId}/balances`}>
               <Button variant="ghost" size="icon"><BarChart3 className="h-5 w-5" /></Button>
             </Link>
