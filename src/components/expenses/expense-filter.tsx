@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef, memo } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,10 @@ const defaultFilters: ExpenseFilters = {
   dateTo: "",
 };
 
-export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) {
+export const ExpenseFilter = memo(function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) {
   const [showFilters, setShowFilters] = useState(false);
+  const [localSearch, setLocalSearch] = useState(filters.search);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasActiveFilters =
     filters.search !== "" ||
@@ -35,9 +37,32 @@ export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) 
     filters.dateFrom !== "" ||
     filters.dateTo !== "";
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     onFiltersChange(defaultFilters);
-  };
+    setLocalSearch("");
+  }, [onFiltersChange]);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalSearch(value);
+
+    // Debounce search by 300ms
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      onFiltersChange({ ...filters, search: value });
+    }, 300);
+  }, [filters, onFiltersChange]);
 
   return (
     <div className="space-y-3">
@@ -48,8 +73,8 @@ export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) 
           <Input
             type="text"
             placeholder="Search expenses..."
-            value={filters.search}
-            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+            value={localSearch}
+            onChange={handleSearchChange}
             className="pl-9"
           />
         </div>
@@ -78,7 +103,7 @@ export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) 
               <button
                 type="button"
                 onClick={() => onFiltersChange({ ...filters, category: "all" })}
-                className={`px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                className={`px-3 py-2 rounded-full text-xs border transition-colors ${
                   filters.category === "all"
                     ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
                     : "border-gray-200 dark:border-gray-600 hover:border-gray-300"
@@ -91,7 +116,7 @@ export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) 
                   key={cat.value}
                   type="button"
                   onClick={() => onFiltersChange({ ...filters, category: cat.value as Category })}
-                  className={`px-2.5 py-1 rounded-full text-xs border transition-colors flex items-center gap-1 ${
+                  className={`px-3 py-2 rounded-full text-xs border transition-colors flex items-center gap-1 ${
                     filters.category === cat.value
                       ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
                       : "border-gray-200 dark:border-gray-600 hover:border-gray-300"
@@ -146,7 +171,7 @@ export function ExpenseFilter({ filters, onFiltersChange }: ExpenseFilterProps) 
       )}
     </div>
   );
-}
+});
 
 // Helper function to filter expenses
 export function filterExpenses<T extends { description: string; category: string; expense_date: string }>(

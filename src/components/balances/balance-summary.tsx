@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ interface Props {
   currentUserId?: string;
 }
 
-export function BalanceSummary({ groupId, balances, debts, userMap, currency, currentUserId }: Props) {
+export const BalanceSummary = memo(function BalanceSummary({ groupId, balances, debts, userMap, currency, currentUserId }: Props) {
   return (
     <div className="space-y-4">
       {/* Individual balances */}
@@ -123,4 +124,4 @@ export function BalanceSummary({ groupId, balances, debts, userMap, currency, cu
       )}
     </div>
   );
-}
+});

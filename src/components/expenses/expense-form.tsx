@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,9 @@ import { createClient } from "@/lib/supabase/client";
 import { calculateSplits } from "@/lib/utils/splits";
 import { CATEGORIES, getCurrencySymbol } from "@/lib/utils/format";
 import { RECURRENCE_OPTIONS, calculateNextOccurrence } from "@/lib/utils/recurring";
-import { Camera, Loader2, Repeat } from "lucide-react";
+import { Camera, Loader2, Repeat, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Confetti, SuccessCheckmark } from "@/components/ui/confetti";
 import type { SplitType, Category, RecurrenceFrequency } from "@/lib/types";
 import { format } from "date-fns";
 
@@ -31,6 +33,8 @@ interface Props {
 export function ExpenseForm({ groupId, members, currentUserId, currency }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [splitType, setSplitType] = useState<SplitType>("equal");
   const [category, setCategory] = useState<Category>("other");
   const [amount, setAmount] = useState("");
@@ -151,8 +155,12 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
         throw new Error(splitErr.message);
       }
 
-      router.push(`/groups/${groupId}`);
-      router.refresh();
+      // Show success animation
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.push(`/groups/${groupId}`);
+        router.refresh();
+      }, 1200);
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to create expense", variant: "destructive" });
     } finally {
@@ -161,6 +169,26 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
   }
 
   const currSymbol = getCurrencySymbol(currency);
+
+  // Success overlay
+  if (showSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 dark:bg-gray-900/90">
+        <Confetti active={showSuccess} />
+        <div className="text-center space-y-4">
+          <SuccessCheckmark />
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-lg font-medium text-gray-900 dark:text-white"
+          >
+            Expense added!
+          </motion.p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -195,28 +223,6 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
         />
       </div>
 
-      {/* Category */}
-      <div className="space-y-2">
-        <Label>Category</Label>
-        <div className="flex gap-2 flex-wrap">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              type="button"
-              onClick={() => setCategory(cat.value as Category)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm border transition-colors ${
-                category === cat.value
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <span>{cat.icon}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Paid by */}
       <div className="space-y-2">
         <Label>Paid by</Label>
@@ -233,83 +239,138 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
         </select>
       </div>
 
-      {/* Date */}
-      <div className="space-y-2">
-        <Label>Date</Label>
-        <Input
-          type="date"
-          value={expenseDate}
-          onChange={(e) => setExpenseDate(e.target.value)}
-        />
-      </div>
-
-      {/* Receipt */}
-      <div className="space-y-2">
-        <Label>Receipt (optional)</Label>
-        <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-gray-300 p-4 hover:bg-gray-50 transition-colors">
-          <Camera className="h-5 w-5 text-gray-400" />
-          <span className="text-sm text-gray-500">
-            {receiptFile ? receiptFile.name : "Tap to upload receipt"}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-      </div>
-
-      {/* Recurring */}
-      <div className="space-y-3">
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div className="relative">
-            <input
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Repeat className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium">Make recurring</span>
-          </div>
-        </label>
-
-        {isRecurring && (
-          <Card>
-            <CardContent className="p-3 space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Frequency</Label>
-                <select
-                  value={recurrenceFrequency}
-                  onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
-                  className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  {RECURRENCE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">End date (optional)</Label>
-                <Input
-                  type="date"
-                  value={recurrenceEndDate}
-                  onChange={(e) => setRecurrenceEndDate(e.target.value)}
-                  min={expenseDate}
-                  placeholder="No end date"
-                />
-                <p className="text-xs text-gray-400">Leave empty for no end date</p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* More options toggle */}
+      <button
+        type="button"
+        onClick={() => setShowMoreOptions(!showMoreOptions)}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors py-2"
+        aria-expanded={showMoreOptions}
+        aria-controls="more-options"
+      >
+        {showMoreOptions ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
         )}
-      </div>
+        <span>{showMoreOptions ? "Hide options" : "More options"}</span>
+        {(category !== "other" || receiptFile || isRecurring) && !showMoreOptions && (
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        )}
+      </button>
+
+      {/* Collapsible advanced options */}
+      <AnimatePresence>
+        {showMoreOptions && (
+          <motion.div
+            id="more-options"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden space-y-6"
+          >
+            {/* Category */}
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <div className="flex gap-2 flex-wrap">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setCategory(cat.value as Category)}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm border transition-colors ${
+                      category === cat.value
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                        : "border-gray-200 dark:border-gray-600 hover:border-gray-300"
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date */}
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+              />
+            </div>
+
+            {/* Receipt */}
+            <div className="space-y-2">
+              <Label>Receipt (optional)</Label>
+              <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <Camera className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-500">
+                  {receiptFile ? receiptFile.name : "Tap to upload receipt"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            </div>
+
+            {/* Recurring */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={isRecurring}
+                    onChange={(e) => setIsRecurring(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Make recurring</span>
+                </div>
+              </label>
+
+              {isRecurring && (
+                <Card>
+                  <CardContent className="p-3 space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500">Frequency</Label>
+                      <select
+                        value={recurrenceFrequency}
+                        onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
+                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {RECURRENCE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-gray-500">End date (optional)</Label>
+                      <Input
+                        type="date"
+                        value={recurrenceEndDate}
+                        onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                        min={expenseDate}
+                        placeholder="No end date"
+                      />
+                      <p className="text-xs text-gray-400">Leave empty for no end date</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Split type */}
       <div className="space-y-2">

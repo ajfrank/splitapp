@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Pencil, Receipt, Repeat } from "lucide-react";
@@ -10,6 +10,7 @@ import { ReceiptThumbnail } from "@/components/ui/receipt-viewer";
 import { formatCurrency, CATEGORIES } from "@/lib/utils/format";
 import { getFrequencyLabel } from "@/lib/utils/recurring";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import type { ExpenseWithRelations } from "@/lib/types";
 
@@ -19,20 +20,47 @@ interface Props {
   onEdit?: (expense: ExpenseWithRelations) => void;
 }
 
-export function ExpenseCard({ expense, currency, onEdit }: Props) {
+export const ExpenseCard = memo(function ExpenseCard({ expense, currency, onEdit }: Props) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const category = CATEGORIES.find((c) => c.value === expense.category);
 
-  async function handleDelete() {
+  const handleDelete = useCallback(async () => {
     setIsDeleting(true);
-    const supabase = createClient();
-    await supabase.from("expense_splits").delete().eq("expense_id", expense.id);
-    await supabase.from("expenses").delete().eq("id", expense.id);
-    router.refresh();
-  }
+    try {
+      const supabase = createClient();
+      const { error: splitsError } = await supabase
+        .from("expense_splits")
+        .delete()
+        .eq("expense_id", expense.id);
+
+      if (splitsError) {
+        throw new Error(splitsError.message);
+      }
+
+      const { error: expenseError } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("id", expense.id);
+
+      if (expenseError) {
+        throw new Error(expenseError.message);
+      }
+
+      toast({ title: "Deleted", description: "Expense has been deleted." });
+      router.refresh();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete expense.",
+        variant: "destructive",
+      });
+      setIsDeleting(false);
+      setShowConfirm(false);
+    }
+  }, [expense.id, router]);
 
   return (
     <Card className="transition-all duration-200 hover:shadow-md overflow-hidden">
@@ -205,4 +233,4 @@ export function ExpenseCard({ expense, currency, onEdit }: Props) {
       </CardContent>
     </Card>
   );
-}
+});

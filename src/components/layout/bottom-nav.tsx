@@ -29,21 +29,27 @@ export function BottomNav() {
   const plusHref = groupId ? `/groups/${groupId}/expenses/new` : "/groups/new";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white px-4 pb-safe">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 px-4 pb-safe"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="mx-auto flex max-w-lg items-center justify-around py-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
 
           if (item.isAction) {
+            const actionLabel = groupId ? "Add new expense" : "Create new group";
             return (
               <Link
                 key={item.label}
                 href={plusHref}
                 className="flex flex-col items-center gap-0.5 -mt-4"
+                aria-label={actionLabel}
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-6 w-6" aria-hidden="true" />
                 </div>
               </Link>
             );
@@ -57,8 +63,10 @@ export function BottomNav() {
                 "flex flex-col items-center gap-0.5 px-3 py-1",
                 isActive ? "text-emerald-600" : "text-gray-400"
               )}
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" aria-hidden="true" />
               <span className="text-xs">{item.label}</span>
             </Link>
           );

@@ -63,24 +63,42 @@ export function GroupSettings({
   }
 
   async function handleDelete() {
+    // Authorization check - only admins can delete groups
+    if (!isAdmin) {
+      toast({ title: "Unauthorized", description: "Only group admins can delete groups.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    // Delete all related data first
-    await supabase.from("expense_splits").delete().in(
-      "expense_id",
-      (await supabase.from("expenses").select("id").eq("group_id", group.id)).data?.map((e) => e.id) || []
-    );
-    await supabase.from("expenses").delete().eq("group_id", group.id);
-    await supabase.from("settlements").delete().eq("group_id", group.id);
-    await supabase.from("group_members").delete().eq("group_id", group.id);
+    try {
+      // Delete all related data first
+      const { data: expenseIds } = await supabase
+        .from("expenses")
+        .select("id")
+        .eq("group_id", group.id);
 
-    const { error } = await supabase.from("groups").delete().eq("id", group.id);
+      if (expenseIds && expenseIds.length > 0) {
+        await supabase.from("expense_splits").delete().in(
+          "expense_id",
+          expenseIds.map((e) => e.id)
+        );
+      }
+      await supabase.from("expenses").delete().eq("group_id", group.id);
+      await supabase.from("settlements").delete().eq("group_id", group.id);
+      await supabase.from("group_members").delete().eq("group_id", group.id);
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const { error } = await supabase.from("groups").delete().eq("id", group.id);
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Deleted", description: "Group has been deleted." });
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to delete group.", variant: "destructive" });
+    } finally {
       setLoading(false);
-    } else {
-      toast({ title: "Deleted", description: "Group has been deleted." });
-      router.push("/dashboard");
     }
   }
 
@@ -102,6 +120,18 @@ export function GroupSettings({
   }
 
   async function handleRemoveMember(userId: string) {
+    // Authorization check - only admins can remove members
+    if (!isAdmin) {
+      toast({ title: "Unauthorized", description: "Only group admins can remove members.", variant: "destructive" });
+      return;
+    }
+
+    // Prevent removing yourself via this function
+    if (userId === currentUserId) {
+      toast({ title: "Error", description: "Use 'Leave Group' to remove yourself.", variant: "destructive" });
+      return;
+    }
+
     setRemovingMember(userId);
     const { error } = await supabase
       .from("group_members")
