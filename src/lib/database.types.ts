@@ -12,6 +12,7 @@ export type Json =
 export type SplitType = "equal" | "percentage" | "exact" | "shares";
 export type Category = "food" | "transport" | "lodging" | "entertainment" | "other";
 export type GroupRole = "admin" | "member";
+export type RecurrenceFrequency = "weekly" | "biweekly" | "monthly" | "yearly";
 
 export interface Database {
   public: {
@@ -113,6 +114,11 @@ export interface Database {
           split_type: SplitType;
           receipt_url: string | null;
           created_at: string;
+          is_recurring: boolean;
+          recurrence_frequency: RecurrenceFrequency | null;
+          recurrence_end_date: string | null;
+          next_occurrence_date: string | null;
+          parent_recurring_id: string | null;
         };
         Insert: {
           id?: string;
@@ -126,6 +132,11 @@ export interface Database {
           split_type: SplitType;
           receipt_url?: string | null;
           created_at?: string;
+          is_recurring?: boolean;
+          recurrence_frequency?: RecurrenceFrequency | null;
+          recurrence_end_date?: string | null;
+          next_occurrence_date?: string | null;
+          parent_recurring_id?: string | null;
         };
         Update: {
           id?: string;
@@ -139,6 +150,11 @@ export interface Database {
           split_type?: SplitType;
           receipt_url?: string | null;
           created_at?: string;
+          is_recurring?: boolean;
+          recurrence_frequency?: RecurrenceFrequency | null;
+          recurrence_end_date?: string | null;
+          next_occurrence_date?: string | null;
+          parent_recurring_id?: string | null;
         };
       };
       expense_splits: {

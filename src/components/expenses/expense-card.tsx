@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Pencil, Receipt } from "lucide-react";
+import { Trash2, Pencil, Receipt, Repeat } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ReceiptThumbnail } from "@/components/ui/receipt-viewer";
 import { formatCurrency, CATEGORIES } from "@/lib/utils/format";
+import { getFrequencyLabel } from "@/lib/utils/recurring";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import type { ExpenseWithRelations } from "@/lib/types";
@@ -56,6 +57,9 @@ export function ExpenseCard({ expense, currency, onEdit }: Props) {
             <span className="font-semibold text-sm">
               {formatCurrency(expense.amount, currency)}
             </span>
+            {expense.is_recurring && (
+              <Repeat className="h-4 w-4 text-emerald-500" aria-label="Recurring" />
+            )}
             {expense.receipt_url && (
               <Receipt className="h-4 w-4 text-gray-400" />
             )}
@@ -73,6 +77,19 @@ export function ExpenseCard({ expense, currency, onEdit }: Props) {
               className="overflow-hidden"
             >
               <div className="px-3 pb-3 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-3">
+                {/* Recurring info */}
+                {expense.is_recurring && expense.recurrence_frequency && (
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg px-3 py-2">
+                    <Repeat className="h-4 w-4" />
+                    <span>Repeats {getFrequencyLabel(expense.recurrence_frequency).toLowerCase()}</span>
+                    {expense.next_occurrence_date && (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        · Next: {format(new Date(expense.next_occurrence_date), "MMM d")}
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Split details */}
                 {expense.splits && expense.splits.length > 0 && (
                   <div className="space-y-1">

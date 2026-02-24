@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton, ExpenseCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { toast } from "@/hooks/use-toast";
+import { useRecurringExpenses } from "@/hooks/use-recurring-expenses";
 import type { Group, ExpenseWithRelations, GroupMemberWithUser } from "@/lib/types";
 
 interface Props {
@@ -42,6 +43,8 @@ export default function GroupPage({ params }: Props) {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithRelations | null>(null);
   const supabase = createClient();
   const initialized = useRef(false);
+  const recurringProcessed = useRef(false);
+  const { processRecurringExpenses } = useRecurringExpenses();
 
   useEffect(() => {
     if (initialized.current && refreshKey === 0) return;
@@ -76,8 +79,21 @@ export default function GroupPage({ params }: Props) {
       setMembers((membersData as GroupMemberWithUser[]) ?? []);
       setExpenses((expensesData as ExpenseWithRelations[]) ?? []);
       setLoading(false);
+
+      // Process recurring expenses (only once per page load)
+      if (!recurringProcessed.current) {
+        recurringProcessed.current = true;
+        const result = await processRecurringExpenses(groupId);
+        if (result.created > 0) {
+          toast({
+            title: "Recurring expenses",
+            description: `Created ${result.created} recurring expense${result.created > 1 ? "s" : ""}`,
+          });
+          setRefreshKey((k) => k + 1);
+        }
+      }
     })();
-  }, [supabase, groupId, refreshKey]);
+  }, [supabase, groupId, refreshKey, processRecurringExpenses]);
 
   useEffect(() => {
     const channel = supabase

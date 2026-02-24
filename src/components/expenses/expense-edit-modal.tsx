@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,8 +18,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { calculateSplits } from "@/lib/utils/splits";
 import { CATEGORIES, getCurrencySymbol } from "@/lib/utils/format";
+import { RECURRENCE_OPTIONS, calculateNextOccurrence } from "@/lib/utils/recurring";
 import { toast } from "@/hooks/use-toast";
-import type { ExpenseWithRelations, SplitType, Category } from "@/lib/types";
+import { format } from "date-fns";
+import type { ExpenseWithRelations, SplitType, Category, RecurrenceFrequency } from "@/lib/types";
 
 interface Member {
   id: string;
@@ -50,6 +52,13 @@ export function ExpenseEditModal({
   const [description, setDescription] = useState(expense.description);
   const [paidBy, setPaidBy] = useState(expense.paid_by);
   const [expenseDate, setExpenseDate] = useState(expense.expense_date);
+
+  // Recurring expense options
+  const [isRecurring, setIsRecurring] = useState(expense.is_recurring);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>(
+    expense.recurrence_frequency || "monthly"
+  );
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState(expense.recurrence_end_date || "");
 
   const [splitValues, setSplitValues] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
@@ -115,6 +124,11 @@ export function ExpenseEditModal({
 
       const supabase = createClient();
 
+      // Calculate next occurrence date for recurring expenses
+      const nextOccurrenceDate = isRecurring
+        ? format(calculateNextOccurrence(expenseDate, recurrenceFrequency), "yyyy-MM-dd")
+        : null;
+
       // Update the expense
       const { error: expenseError } = await supabase
         .from("expenses")
@@ -125,6 +139,10 @@ export function ExpenseEditModal({
           paid_by: paidBy,
           expense_date: expenseDate,
           split_type: splitType,
+          is_recurring: isRecurring,
+          recurrence_frequency: isRecurring ? recurrenceFrequency : null,
+          recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+          next_occurrence_date: nextOccurrenceDate,
         })
         .eq("id", expense.id);
 
@@ -251,6 +269,56 @@ export function ExpenseEditModal({
               value={expenseDate}
               onChange={(e) => setExpenseDate(e.target.value)}
             />
+          </div>
+
+          {/* Recurring */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium">Make recurring</span>
+              </div>
+            </label>
+
+            {isRecurring && (
+              <Card>
+                <CardContent className="p-3 space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-gray-500">Frequency</Label>
+                    <select
+                      value={recurrenceFrequency}
+                      onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
+                      className="flex h-10 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      {RECURRENCE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-gray-500">End date (optional)</Label>
+                    <Input
+                      type="date"
+                      value={recurrenceEndDate}
+                      onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                      min={expenseDate}
+                    />
+                    <p className="text-xs text-gray-400">Leave empty for no end date</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Split type */}

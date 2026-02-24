@@ -3,6 +3,7 @@ export type {
   SplitType,
   Category,
   GroupRole,
+  RecurrenceFrequency,
   User,
   Group,
   GroupMember,

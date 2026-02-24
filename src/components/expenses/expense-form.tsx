@@ -10,9 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { calculateSplits } from "@/lib/utils/splits";
 import { CATEGORIES, getCurrencySymbol } from "@/lib/utils/format";
-import { Camera, Loader2 } from "lucide-react";
+import { RECURRENCE_OPTIONS, calculateNextOccurrence } from "@/lib/utils/recurring";
+import { Camera, Loader2, Repeat } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import type { SplitType, Category } from "@/lib/types";
+import type { SplitType, Category, RecurrenceFrequency } from "@/lib/types";
+import { format } from "date-fns";
 
 interface Member {
   id: string;
@@ -34,8 +36,15 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [paidBy, setPaidBy] = useState(currentUserId);
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
+  const [expenseDate, setExpenseDate] = useState<string>(
+    new Date().toISOString().split("T")[0] ?? ""
+  );
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+
+  // Recurring expense options
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>("monthly");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
 
   // Split values per member
   const [splitValues, setSplitValues] = useState<Record<string, number>>(() => {
@@ -109,12 +118,21 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
 
       const splits = calculateSplits(numAmount, splitType, activeMemberIds, splitInputs);
 
+      // Calculate next occurrence date for recurring expenses
+      const nextOccurrenceDate = isRecurring
+        ? format(calculateNextOccurrence(expenseDate, recurrenceFrequency), "yyyy-MM-dd")
+        : null;
+
       const { data: expense, error } = await supabase
         .from("expenses")
         .insert({
           group_id: groupId, description, amount: numAmount, currency,
           category, paid_by: paidBy, expense_date: expenseDate,
           split_type: splitType, receipt_url: receiptUrl,
+          is_recurring: isRecurring,
+          recurrence_frequency: isRecurring ? recurrenceFrequency : null,
+          recurrence_end_date: isRecurring && recurrenceEndDate ? recurrenceEndDate : null,
+          next_occurrence_date: nextOccurrenceDate,
         })
         .select().single();
 
@@ -240,6 +258,57 @@ export function ExpenseForm({ groupId, members, currentUserId, currency }: Props
             onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
           />
         </label>
+      </div>
+
+      {/* Recurring */}
+      <div className="space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Repeat className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium">Make recurring</span>
+          </div>
+        </label>
+
+        {isRecurring && (
+          <Card>
+            <CardContent className="p-3 space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500">Frequency</Label>
+                <select
+                  value={recurrenceFrequency}
+                  onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
+                  className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {RECURRENCE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500">End date (optional)</Label>
+                <Input
+                  type="date"
+                  value={recurrenceEndDate}
+                  onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                  min={expenseDate}
+                  placeholder="No end date"
+                />
+                <p className="text-xs text-gray-400">Leave empty for no end date</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Split type */}

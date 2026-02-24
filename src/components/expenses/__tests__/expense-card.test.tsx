@@ -35,6 +35,11 @@ const mockExpense: ExpenseWithRelations = {
   split_type: "equal",
   receipt_url: null,
   created_at: "2025-06-15T12:00:00Z",
+  is_recurring: false,
+  recurrence_frequency: null,
+  recurrence_end_date: null,
+  next_occurrence_date: null,
+  parent_recurring_id: null,
   paid_by_user: {
     id: "user-1",
     email: "john@test.com",
