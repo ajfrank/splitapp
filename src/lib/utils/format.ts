@@ -2,7 +2,11 @@ import { getCurrencySymbol as getSymbol, ALL_CURRENCIES } from "./currencies";
 
 export function formatCurrency(amount: number, currency: string = "USD"): string {
   const symbol = getSymbol(currency);
-  return `${symbol}${Math.abs(amount).toFixed(2)}`;
+  const formatted = Math.abs(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${symbol}${formatted}`;
 }
 
 export function getCurrencySymbol(currency: string): string {

@@ -26,8 +26,8 @@ describe("formatCurrency", () => {
     expect(formatCurrency(10, "XXX")).toBe("XXX10.00");
   });
 
-  it("handles large amounts", () => {
-    expect(formatCurrency(999999.99, "USD")).toBe("$999999.99");
+  it("handles large amounts with comma separators", () => {
+    expect(formatCurrency(999999.99, "USD")).toBe("$999,999.99");
   });
 });
 
