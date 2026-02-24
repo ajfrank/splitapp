@@ -9,10 +9,17 @@ import { BalanceSkeleton } from "@/components/ui/skeleton";
 import { simplifyDebts } from "@/lib/utils/debt-simplify";
 import { calculateBalances } from "@/lib/utils/balances";
 import { toast } from "@/hooks/use-toast";
-import type { Group, DebtEdge, GroupMemberWithUser } from "@/lib/types";
+import type { Group, DebtEdge, GroupMemberWithUser, User } from "@/lib/types";
 
 interface Props {
   params: Promise<{ groupId: string }>;
+}
+
+interface UserInfo {
+  full_name: string;
+  venmo_username: string | null;
+  paypal_username?: string | null;
+  cashapp_username?: string | null;
 }
 
 export default function BalancesPage({ params }: Props) {
@@ -20,7 +27,8 @@ export default function BalancesPage({ params }: Props) {
   const [group, setGroup] = useState<Group | null>(null);
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [debts, setDebts] = useState<DebtEdge[]>([]);
-  const [userMap, setUserMap] = useState<Record<string, { full_name: string; venmo_username: string | null }>>({});
+  const [userMap, setUserMap] = useState<Record<string, UserInfo>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const initialized = useRef(false);
@@ -30,6 +38,12 @@ export default function BalancesPage({ params }: Props) {
     initialized.current = true;
 
     (async () => {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setCurrentUserId(session.user.id);
+      }
+
       // Parallelize all database queries for better performance
       const [groupResult, membersResult, expensesResult, settlementsResult] = await Promise.all([
         supabase.from("groups").select("*").eq("id", groupId).single(),
@@ -50,9 +64,17 @@ export default function BalancesPage({ params }: Props) {
 
       setGroup(groupData as Group);
 
-      const uMap: Record<string, { full_name: string; venmo_username: string | null }> = {};
+      const uMap: Record<string, UserInfo> = {};
       ((members ?? []) as GroupMemberWithUser[]).forEach((m) => {
-        if (m.user) uMap[m.user_id] = { full_name: m.user.full_name, venmo_username: m.user.venmo_username };
+        if (m.user) {
+          const user = m.user as User & { paypal_username?: string | null; cashapp_username?: string | null };
+          uMap[m.user_id] = {
+            full_name: user.full_name,
+            venmo_username: user.venmo_username,
+            paypal_username: user.paypal_username,
+            cashapp_username: user.cashapp_username,
+          };
+        }
       });
       setUserMap(uMap);
 
@@ -81,7 +103,14 @@ export default function BalancesPage({ params }: Props) {
     <>
       <Header title="Balances" showBack />
       <div className="p-4">
-        <BalanceSummary groupId={groupId} balances={balances} debts={debts} userMap={userMap} currency={group.currency} />
+        <BalanceSummary
+          groupId={groupId}
+          balances={balances}
+          debts={debts}
+          userMap={userMap}
+          currency={group.currency}
+          currentUserId={currentUserId ?? undefined}
+        />
       </div>
     </>
   );

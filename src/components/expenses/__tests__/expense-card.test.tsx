@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { ExpenseCard } from "../expense-card";
-import type { Expense } from "@/lib/types";
+import type { ExpenseWithRelations } from "@/lib/types";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -23,7 +23,7 @@ afterEach(() => {
   cleanup();
 });
 
-const mockExpense: Expense = {
+const mockExpense: ExpenseWithRelations = {
   id: "exp-1",
   group_id: "grp-1",
   description: "Pizza dinner",
@@ -41,6 +41,9 @@ const mockExpense: Expense = {
     full_name: "John Doe",
     avatar_url: null,
     venmo_username: null,
+    paypal_username: null,
+    cashapp_username: null,
+    created_at: "2025-01-01T00:00:00Z",
   },
 };
 

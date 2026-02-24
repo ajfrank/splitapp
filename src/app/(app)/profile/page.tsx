@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon, Save } from "lucide-react";
+import { LogOut, User as UserIcon, Save, CreditCard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileSkeleton, Skeleton } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { toast } from "@/hooks/use-toast";
 import type { User } from "@/lib/types";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [venmoUsername, setVenmoUsername] = useState("");
+  const [paypalUsername, setPaypalUsername] = useState("");
+  const [cashappUsername, setCashappUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -45,8 +48,11 @@ export default function ProfilePage() {
       }
 
       if (userData) {
-        setUser(userData as User);
-        setVenmoUsername(userData.venmo_username ?? "");
+        const typedUser = userData as User;
+        setUser(typedUser);
+        setVenmoUsername(typedUser.venmo_username ?? "");
+        setPaypalUsername((typedUser as User & { paypal_username?: string | null }).paypal_username ?? "");
+        setCashappUsername((typedUser as User & { cashapp_username?: string | null }).cashapp_username ?? "");
       }
       setLoading(false);
     })();
@@ -58,7 +64,11 @@ export default function ProfilePage() {
 
     const { error } = await supabase
       .from("users")
-      .update({ venmo_username: venmoUsername || null })
+      .update({
+        venmo_username: venmoUsername || null,
+        paypal_username: paypalUsername || null,
+        cashapp_username: cashappUsername || null,
+      })
       .eq("id", user.id);
 
     if (error) {
@@ -109,7 +119,11 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Header title="Profile" showBack />
+      <Header
+        title="Profile"
+        showBack
+        action={<ThemeToggle />}
+      />
       <div className="space-y-4 p-4">
         <Card>
           <CardContent className="flex items-center gap-4 pt-6">
@@ -121,14 +135,17 @@ export default function ProfilePage() {
             </Avatar>
             <div>
               <p className="font-semibold text-lg">{user.full_name}</p>
-              <p className="text-sm text-gray-500">{user.email}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Payment Settings</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Payment Settings
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -139,10 +156,37 @@ export default function ProfilePage() {
                 value={venmoUsername}
                 onChange={(e) => setVenmoUsername(e.target.value)}
               />
-              <p className="text-xs text-gray-500">
-                Add your Venmo username so others can pay you directly.
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Your Venmo username (without the @)
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paypal">PayPal Username</Label>
+              <Input
+                id="paypal"
+                placeholder="username or email"
+                value={paypalUsername}
+                onChange={(e) => setPaypalUsername(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Your PayPal.me username or email
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cashapp">Cash App $Cashtag</Label>
+              <Input
+                id="cashapp"
+                placeholder="$username"
+                value={cashappUsername}
+                onChange={(e) => setCashappUsername(e.target.value)}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Your Cash App $cashtag (with or without the $)
+              </p>
+            </div>
+
             <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
               <Save className="h-4 w-4" />
               {saving ? "Saving..." : "Save Changes"}

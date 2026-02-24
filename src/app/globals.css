@@ -11,11 +11,62 @@
   --animate-out: exit 0.2s ease-in forwards;
 }
 
+/* Light mode (default) */
+:root {
+  --background: 249 250 251;
+  --foreground: 17 24 39;
+  --card: 255 255 255;
+  --card-foreground: 17 24 39;
+  --popover: 255 255 255;
+  --popover-foreground: 17 24 39;
+  --primary: 5 150 105;
+  --primary-foreground: 255 255 255;
+  --secondary: 243 244 246;
+  --secondary-foreground: 17 24 39;
+  --muted: 243 244 246;
+  --muted-foreground: 107 114 128;
+  --accent: 243 244 246;
+  --accent-foreground: 17 24 39;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 229 231 235;
+  --input: 229 231 235;
+  --ring: 5 150 105;
+}
+
+/* Dark mode */
+.dark {
+  --background: 17 24 39;
+  --foreground: 243 244 246;
+  --card: 31 41 55;
+  --card-foreground: 243 244 246;
+  --popover: 31 41 55;
+  --popover-foreground: 243 244 246;
+  --primary: 16 185 129;
+  --primary-foreground: 17 24 39;
+  --secondary: 55 65 81;
+  --secondary-foreground: 243 244 246;
+  --muted: 55 65 81;
+  --muted-foreground: 156 163 175;
+  --accent: 55 65 81;
+  --accent-foreground: 243 244 246;
+  --destructive: 185 28 28;
+  --destructive-foreground: 255 255 255;
+  --border: 55 65 81;
+  --input: 55 65 81;
+  --ring: 16 185 129;
+}
+
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
 }
 
 /* Toast animation keyframes */
@@ -41,6 +92,47 @@ body {
   }
 }
 
+/* Zoom animations */
+@keyframes zoom-in-95 {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes zoom-out-95 {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 /* Animate in/out utilities for Radix Toast */
 .animate-in {
   animation: enter 0.2s ease-out;
@@ -48,6 +140,22 @@ body {
 
 .animate-out {
   animation: exit 0.15s ease-in forwards;
+}
+
+.fade-in-0 {
+  animation: fade-in 0.2s ease-out;
+}
+
+.fade-out-0 {
+  animation: fade-out 0.15s ease-in forwards;
+}
+
+.zoom-in-95 {
+  animation: zoom-in-95 0.2s ease-out;
+}
+
+.zoom-out-95 {
+  animation: zoom-out-95 0.15s ease-in forwards;
 }
 
 .fade-out-80 {
@@ -58,10 +166,69 @@ body {
   --tw-enter-translate-y: -100%;
 }
 
+.slide-in-from-top-2 {
+  --tw-enter-translate-y: -0.5rem;
+}
+
 .slide-in-from-right-full {
   --tw-enter-translate-x: 100%;
 }
 
+.slide-in-from-right-2 {
+  --tw-enter-translate-x: 0.5rem;
+}
+
+.slide-in-from-left-2 {
+  --tw-enter-translate-x: -0.5rem;
+}
+
+.slide-in-from-bottom-2 {
+  --tw-enter-translate-y: 0.5rem;
+}
+
 .slide-out-to-right-full {
   --tw-exit-translate-x: 100%;
+}
+
+/* Dark mode card overrides */
+.dark .bg-white {
+  background: rgb(var(--card));
+}
+
+.dark .bg-gray-50 {
+  background: rgb(var(--secondary));
+}
+
+.dark .bg-gray-100 {
+  background: rgb(55 65 81);
+}
+
+.dark .border-gray-200 {
+  border-color: rgb(var(--border));
+}
+
+.dark .border-gray-300 {
+  border-color: rgb(75 85 99);
+}
+
+.dark .text-gray-500 {
+  color: rgb(var(--muted-foreground));
+}
+
+.dark .text-gray-600 {
+  color: rgb(156 163 175);
+}
+
+.dark .text-gray-900 {
+  color: rgb(var(--foreground));
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

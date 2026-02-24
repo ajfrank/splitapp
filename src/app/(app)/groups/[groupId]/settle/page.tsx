@@ -14,7 +14,7 @@ import { calculateBalances } from "@/lib/utils/balances";
 import { formatCurrency } from "@/lib/utils/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import type { Group, DebtEdge, Settlement, GroupMemberWithUser } from "@/lib/types";
+import type { Group, DebtEdge, SettlementWithUsers, GroupMemberWithUser } from "@/lib/types";
 
 interface Props {
   params: Promise<{ groupId: string }>;
@@ -24,7 +24,7 @@ export default function SettlePage({ params }: Props) {
   const { groupId } = use(params);
   const [group, setGroup] = useState<Group | null>(null);
   const [debts, setDebts] = useState<DebtEdge[]>([]);
-  const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [settlements, setSettlements] = useState<SettlementWithUsers[]>([]);
   const [userMap, setUserMap] = useState<Record<string, { full_name: string; venmo_username: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -54,7 +54,7 @@ export default function SettlePage({ params }: Props) {
       if (sErr) toast({ title: "Error", description: sErr.message, variant: "destructive" });
 
       setGroup(groupData as Group);
-      setSettlements((settlementsData as Settlement[]) ?? []);
+      setSettlements((settlementsData as SettlementWithUsers[]) ?? []);
 
       const uMap: Record<string, { full_name: string; venmo_username: string | null }> = {};
       ((members ?? []) as GroupMemberWithUser[]).forEach((m) => {

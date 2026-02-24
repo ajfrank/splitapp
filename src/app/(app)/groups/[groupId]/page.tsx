@@ -8,25 +8,38 @@ import { createClient } from "@/lib/supabase/client";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { ExpenseCard } from "@/components/expenses/expense-card";
+import { ExpenseEditModal } from "@/components/expenses/expense-edit-modal";
+import { ExpenseFilter, filterExpenses, type ExpenseFilters } from "@/components/expenses/expense-filter";
 import { InviteButton } from "@/components/groups/invite-button";
 import { MembersList } from "@/components/groups/members-list";
+import { GroupSettings } from "@/components/groups/group-settings";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton, ExpenseCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated-list";
 import { toast } from "@/hooks/use-toast";
-import type { Group, Expense, GroupMember } from "@/lib/types";
+import type { Group, ExpenseWithRelations, GroupMemberWithUser } from "@/lib/types";
 
 interface Props {
   params: Promise<{ groupId: string }>;
 }
 
+const DEFAULT_FILTERS: ExpenseFilters = {
+  search: "",
+  category: "all",
+  dateFrom: "",
+  dateTo: "",
+};
+
 export default function GroupPage({ params }: Props) {
   const { groupId } = use(params);
   const [group, setGroup] = useState<Group | null>(null);
-  const [members, setMembers] = useState<GroupMember[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [members, setMembers] = useState<GroupMemberWithUser[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ExpenseFilters>(DEFAULT_FILTERS);
+  const [editingExpense, setEditingExpense] = useState<ExpenseWithRelations | null>(null);
   const supabase = createClient();
   const initialized = useRef(false);
 
@@ -35,6 +48,12 @@ export default function GroupPage({ params }: Props) {
     if (!initialized.current) initialized.current = true;
 
     (async () => {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setCurrentUserId(session.user.id);
+      }
+
       // Parallelize all database queries for better performance
       const [groupResult, membersResult, expensesResult] = await Promise.all([
         supabase.from("groups").select("*").eq("id", groupId).single(),
@@ -54,8 +73,8 @@ export default function GroupPage({ params }: Props) {
       if (eErr) toast({ title: "Error", description: eErr.message, variant: "destructive" });
 
       setGroup(groupData as Group);
-      setMembers((membersData as GroupMember[]) ?? []);
-      setExpenses((expensesData as Expense[]) ?? []);
+      setMembers((membersData as GroupMemberWithUser[]) ?? []);
+      setExpenses((expensesData as ExpenseWithRelations[]) ?? []);
       setLoading(false);
     })();
   }, [supabase, groupId, refreshKey]);
@@ -73,6 +92,21 @@ export default function GroupPage({ params }: Props) {
 
     return () => { supabase.removeChannel(channel); };
   }, [supabase, groupId]);
+
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  // Get current user's membership info
+  const currentMember = members.find((m) => m.user_id === currentUserId);
+  const isAdmin = currentMember?.role === "admin";
+
+  // Filter expenses
+  const filteredExpenses = filterExpenses(expenses, filters);
+
+  // Get members for editing (need name and id)
+  const membersList = members.map((m) => ({
+    id: m.user_id,
+    name: m.user?.full_name || "Unknown",
+  }));
 
   if (loading) {
     return (
@@ -105,9 +139,18 @@ export default function GroupPage({ params }: Props) {
         title={group.name}
         showBack
         action={
-          <Link href={`/groups/${groupId}/balances`}>
-            <Button variant="ghost" size="icon"><BarChart3 className="h-5 w-5" /></Button>
-          </Link>
+          <div className="flex items-center gap-1">
+            <GroupSettings
+              group={group}
+              members={members}
+              currentUserId={currentUserId || ""}
+              isAdmin={isAdmin}
+              onUpdate={refresh}
+            />
+            <Link href={`/groups/${groupId}/balances`}>
+              <Button variant="ghost" size="icon"><BarChart3 className="h-5 w-5" /></Button>
+            </Link>
+          </div>
         }
       />
       <div className="space-y-4 p-4">
@@ -118,9 +161,20 @@ export default function GroupPage({ params }: Props) {
           <InviteButton inviteCode={group.invite_code} />
         </div>
         <MembersList members={members} />
+
+        {/* Search and Filter */}
+        <ExpenseFilter filters={filters} onFiltersChange={setFilters} />
+
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Expenses</h2>
+            <h2 className="font-semibold">
+              Expenses
+              {filteredExpenses.length !== expenses.length && (
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  ({filteredExpenses.length} of {expenses.length})
+                </span>
+              )}
+            </h2>
             <Link href={`/groups/${groupId}/balances`}>
               <Button variant="link" size="sm">View Balances</Button>
             </Link>
@@ -140,17 +194,40 @@ export default function GroupPage({ params }: Props) {
               }
               className="py-8"
             />
+          ) : filteredExpenses.length === 0 ? (
+            <EmptyState
+              icon={Receipt}
+              title="No matching expenses"
+              description="Try adjusting your search or filters"
+              className="py-8"
+            />
           ) : (
             <AnimatedList className="space-y-2">
-              {expenses.map((expense) => (
+              {filteredExpenses.map((expense) => (
                 <AnimatedListItem key={expense.id}>
-                  <ExpenseCard expense={expense} currency={group.currency} />
+                  <ExpenseCard
+                    expense={expense}
+                    currency={group.currency}
+                    onEdit={setEditingExpense}
+                  />
                 </AnimatedListItem>
               ))}
             </AnimatedList>
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingExpense && (
+        <ExpenseEditModal
+          expense={editingExpense}
+          members={membersList}
+          currency={group.currency}
+          open={!!editingExpense}
+          onOpenChange={(open) => !open && setEditingExpense(null)}
+          onSaved={refresh}
+        />
+      )}
     </>
   );
 }

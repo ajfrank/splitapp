@@ -3,18 +3,27 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PaymentButtons } from "@/components/balances/payment-buttons";
 import { formatCurrency } from "@/lib/utils/format";
 import type { DebtEdge } from "@/lib/types";
+
+interface UserInfo {
+  full_name: string;
+  venmo_username: string | null;
+  paypal_username?: string | null;
+  cashapp_username?: string | null;
+}
 
 interface Props {
   groupId: string;
   balances: Record<string, number>;
   debts: DebtEdge[];
-  userMap: Record<string, { full_name: string; venmo_username: string | null }>;
+  userMap: Record<string, UserInfo>;
   currency: string;
+  currentUserId?: string;
 }
 
-export function BalanceSummary({ groupId, balances, debts, userMap, currency }: Props) {
+export function BalanceSummary({ groupId, balances, debts, userMap, currency, currentUserId }: Props) {
   return (
     <div className="space-y-4">
       {/* Individual balances */}
@@ -28,13 +37,18 @@ export function BalanceSummary({ groupId, balances, debts, userMap, currency }: 
             const rounded = Math.round(balance * 100) / 100;
             return (
               <div key={userId} className="flex items-center justify-between">
-                <span className="text-sm">{user?.full_name ?? "Unknown"}</span>
+                <span className="text-sm">
+                  {user?.full_name ?? "Unknown"}
+                  {userId === currentUserId && (
+                    <span className="text-gray-400 ml-1">(You)</span>
+                  )}
+                </span>
                 <span
                   className={`text-sm font-medium ${
                     rounded > 0
-                      ? "text-emerald-600"
+                      ? "text-emerald-600 dark:text-emerald-400"
                       : rounded < 0
-                      ? "text-red-600"
+                      ? "text-red-600 dark:text-red-400"
                       : "text-gray-400"
                   }`}
                 >
@@ -53,23 +67,48 @@ export function BalanceSummary({ groupId, balances, debts, userMap, currency }: 
         <CardHeader>
           <CardTitle className="text-sm">Simplified Debts</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           {debts.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">All settled up!</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">All settled up!</p>
           ) : (
             debts.map((debt, i) => {
               const fromUser = userMap[debt.from];
               const toUser = userMap[debt.to];
+              const isCurrentUserPaying = debt.from === currentUserId;
+
               return (
-                <div key={i} className="flex items-center justify-between gap-2">
-                  <div className="text-sm flex-1">
-                    <span className="font-medium">{fromUser?.full_name ?? "Unknown"}</span>
-                    <span className="text-gray-400"> owes </span>
-                    <span className="font-medium">{toUser?.full_name ?? "Unknown"}</span>
+                <div key={i} className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm flex-1">
+                      <span className="font-medium">
+                        {fromUser?.full_name ?? "Unknown"}
+                        {debt.from === currentUserId && (
+                          <span className="text-gray-400 ml-1">(You)</span>
+                        )}
+                      </span>
+                      <span className="text-gray-400 dark:text-gray-500"> owes </span>
+                      <span className="font-medium">
+                        {toUser?.full_name ?? "Unknown"}
+                        {debt.to === currentUserId && (
+                          <span className="text-gray-400 ml-1">(You)</span>
+                        )}
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {formatCurrency(debt.amount, currency)}
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold text-red-600">
-                    {formatCurrency(debt.amount, currency)}
-                  </span>
+
+                  {/* Payment buttons - show when current user owes someone */}
+                  {isCurrentUserPaying && toUser && (
+                    <PaymentButtons
+                      venmoUsername={toUser.venmo_username}
+                      paypalUsername={toUser.paypal_username}
+                      cashappUsername={toUser.cashapp_username}
+                      amount={debt.amount}
+                      note={`SplitApp payment`}
+                    />
+                  )}
                 </div>
               );
             })
@@ -79,7 +118,7 @@ export function BalanceSummary({ groupId, balances, debts, userMap, currency }: 
 
       {debts.length > 0 && (
         <Link href={`/groups/${groupId}/settle`}>
-          <Button className="w-full">Settle Up</Button>
+          <Button className="w-full">Record Settlement</Button>
         </Link>
       )}
     </div>
